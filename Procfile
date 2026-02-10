@@ -1,1 +1,1 @@
-web: python performance_api.py
+web: gunicorn performance_api:app
