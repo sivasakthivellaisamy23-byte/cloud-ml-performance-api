@@ -1,40 +1,63 @@
 from flask import Flask, request, jsonify
 import joblib
 
+# Create Flask app
 app = Flask(__name__)
 
 # Load trained ML model
+# Make sure performance_model.pkl is in the same folder
 model = joblib.load("performance_model.pkl")
 
+
+# -------------------------------
+# Home route (test in browser)
+# -------------------------------
 @app.route("/", methods=["GET"])
 def home():
-    return "ML API is running"
+    return "Cloud ML Performance API is running"
 
+
+# -------------------------------
+# Prediction route
+# -------------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json()
+    try:
+        # Get JSON data from request
+        data = request.get_json()
 
-    score = data.get("score", 0)
-    response_time = data.get("response_time", 0)
-    attempts = data.get("attempts", 0)
+        # Read input values safely
+        score = float(data.get("score", 0))
+        response_time = float(data.get("response_time", 0))
+        attempts = int(data.get("attempts", 0))
 
-    # ML prediction
-    prediction = model.predict([[score, response_time, attempts]])[0]
+        # ML prediction
+        prediction = model.predict([[score, response_time, attempts]])[0]
 
-    # 🔥 FIX: convert numpy.int64 → int → string label
-    prediction = int(prediction)
+        # Convert numpy type → int
+        prediction = int(prediction)
 
-    # Optional mapping (recommended for feedback)
-    if prediction == 2:
-        result = "Good"
-    elif prediction == 1:
-        result = "Average"
-    else:
-        result = "Poor"
+        # Map prediction to feedback
+        if prediction == 2:
+            performance = "Good"
+        elif prediction == 1:
+            performance = "Average"
+        else:
+            performance = "Poor"
 
-    return jsonify({
-        "performance": result
-    })
+        # Send response
+        return jsonify({
+            "performance": performance
+        })
 
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+
+# -------------------------------
+# Run app (Render compatible)
+# -------------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000)
